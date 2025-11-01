@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fireworks Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            cursor: pointer;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .welcome-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .welcome-popup.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900">
+    <canvas id="fireworksCanvas"></canvas>
+    
+    <div id="welcomePopup" class="welcome-popup">
+        Tap to launch a firework
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        const welcomePopup = document.getElementById('welcomePopup');
+
+        let fireworks = [];
+        let particles = [];
+        let flashes = []; 
+        let simulationSpeed = 1.2; // Default speed set to 1.2x
+
+        const FIREWORK_TYPES = {
+            PEONY: 'PEONY',     
+            WILLOW: 'WILLOW',   
+            GLITTER: 'GLITTER', 
+            HEART: 'HEART'      
+        };
+
+        let currentShowConfig = {
+            launchInterval: 800,
+            particleCount: 100,
+            explosionPower: 5,
+            fireworkTypes: [FIREWORK_TYPES.PEONY] 
+        };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const random = (min, max) => Math.random() * (max - min) + min;
+
+        // --- Flash Class ---
+        class Flash {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.life = 15; // Reduced from 30 - shorter flash duration
+                this.alpha = 1;
+            }
+
+            update() {
+                this.life--;
+                this.alpha = Math.max(0, this.life / 15);
+            }
+
+            draw() {
+                ctx.save();
+                // Reduced maximum alpha to make it less blinding
+                ctx.globalAlpha = this.alpha * 0.3; // Much softer flash
+                
+                // Convert HSL to HSLA for gradient
+                const hslMatch = this.color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                const hslaColor = hslMatch ? 
+                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0.3)` : 
+                    this.color;
+                
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 80 * (1 - this.alpha));
+                gradient.addColorStop(0, `rgba(255, 255, 255, 0.4)`);
+                gradient.addColorStop(0.4, hslaColor);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 100, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+
+        // --- Particle Class ---
+        class Particle {
+            constructor(x, y, color, velocity, type = 'normal') {
+                this.x = x;
+                this.y = y;
+                this.prevX = x; 
+                this.prevY = y; 
+                this.color = color;
+                this.velocity = velocity;
+                this.alpha = 1;
+                this.friction = 0.99;
+                this.gravity = 0.03;
+                this.life = random(120, 150);
+                this.type = type;
+                // Sparkle effect properties
+                this.sparkleIntensity = random(0.8, 1.0);
+                this.sparklePhase = random(0, Math.PI * 2);
+            }
+
+            draw() {
+                ctx.save();
+                
+                // Enhanced trail with brighter, more vibrant colors
+                ctx.beginPath();
+                ctx.moveTo(this.prevX, this.prevY);
+                ctx.lineTo(this.x, this.y);
+                ctx.lineWidth = 3;
+                
+                // Create a more vibrant gradient along the trail
+                const gradient = ctx.createLinearGradient(this.prevX, this.prevY, this.x, this.y);
+                const vibrantColor = this.getVibrantColor();
+                gradient.addColorStop(0, vibrantColor);
+                gradient.addColorStop(1, this.color);
+                
+                ctx.strokeStyle = gradient;
+                ctx.shadowBlur = 15 + this.sparkleIntensity * 10;
+                ctx.shadowColor = vibrantColor;
+                ctx.globalAlpha = this.alpha;
+                ctx.stroke();
+
+                // Enhanced core particle with crackling sparkle effect
+                const sparkle = Math.sin(this.sparklePhase + Date.now() * 0.02) * 0.3 + 0.7;
+                const particleSize = 2 + sparkle * this.sparkleIntensity;
+                
+                // Bright white center with color glow
+                const hslMatch = vibrantColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                const hslaColor1 = hslMatch ? 
+                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0.9)` : 
+                    vibrantColor;
+                const hslaColor2 = hslMatch ? 
+                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0)` : 
+                    vibrantColor;
+                
+                const radialGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, particleSize * 2);
+                radialGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                radialGradient.addColorStop(0.3, hslaColor1);
+                radialGradient.addColorStop(1, hslaColor2);
+                
+                ctx.fillStyle = radialGradient;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = vibrantColor;
+                ctx.globalAlpha = this.alpha * sparkle;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, particleSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+            
+            getVibrantColor() {
+                // Extract hue from HSL color and make it more vibrant
+                const match = this.color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                if (match) {
+                    const hue = parseInt(match[1]);
+                    // Increase saturation to 100% and lightness to 60-70% for more vibrant colors
+                    return `hsl(${hue}, 100%, ${65 + this.sparkleIntensity * 10}%)`;
+                }
+                return this.color;
+            }
+
+            update() {
+                this.prevX = this.x;
+                this.prevY = this.y;
+
+                this.life--;
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                
+                this.velocity.y += this.gravity * simulationSpeed;
+                this.x += this.velocity.x * simulationSpeed;
+                this.y += this.velocity.y * simulationSpeed;
+                
+                // Animate sparkle phase for crackling effect
+                this.sparklePhase += 0.5;
+
+                if (this.type === FIREWORK_TYPES.GLITTER && this.life > 0) {
+                    this.alpha = random(0.3, 1);
+                } else {
+                    this.alpha -= 1 / this.life;
+                }
+            }
+        }
+
+        // --- Firework (Rocket) Class ---
+        class Firework extends Particle {
+            constructor(x, y, color, targetY, type) {
+                super(x, y, color, { x: 0, y: random(-4, -6) });
+                this.prevX = x;
+                this.prevY = y;
+                this.targetY = targetY;
+                this.explosionType = type; 
+            }
+
+            update() {
+                this.prevX = this.x;
+                this.prevY = this.y;
+
+                this.life--;
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+
+                // ✨ MODIFIED: Apply simulation speed
+                this.velocity.y += this.gravity * simulationSpeed;
+                this.x += this.velocity.x * simulationSpeed;
+                this.y += this.velocity.y * simulationSpeed;
+
+                this.alpha -= 1 / this.life;
+
+                if (this.velocity.y >= 0 || this.y <= this.targetY) {
+                    this.explode();
+                    this.life = 0; 
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                
+                ctx.beginPath();
+                ctx.moveTo(this.prevX, this.prevY);
+                ctx.lineTo(this.x, this.y);
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = this.color;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            explode() {
+                flashes.push(new Flash(this.x, this.y, this.color));
+
+                const particleCount = currentShowConfig.particleCount;
+                const power = currentShowConfig.explosionPower;
+
+                switch (this.explosionType) {
+                    case FIREWORK_TYPES.WILLOW:
+                        for (let i = 0; i < particleCount; i++) {
+                            const angle = random(0, Math.PI * 2);
+                            const velocity = {
+                                x: Math.cos(angle) * random(0.5, power * 0.8),
+                                y: Math.sin(angle) * random(0.5, power * 0.8)
+                            };
+                            const p = new Particle(this.x, this.y, this.color, velocity);
+                            p.gravity = 0.01; 
+                            p.friction = 0.96; 
+                            p.life = random(200, 300); 
+                            particles.push(p);
+                        }
+                        break;
+                    
+                    case FIREWORK_TYPES.GLITTER:
+                        for (let i = 0; i < particleCount; i++) {
+                            const angle = random(0, Math.PI * 2);
+                            const velocity = {
+                                x: Math.cos(angle) * random(1, power),
+                                y: Math.sin(angle) * random(1, power)
+                            };
+                            particles.push(new Particle(this.x, this.y, this.color, velocity, FIREWORK_TYPES.GLITTER));
+                        }
+                        break;
+                    
+                    case FIREWORK_TYPES.HEART:
+                        const heartParticles = particleCount * 1.5; 
+                        for (let i = 0; i < heartParticles; i++) {
+                            const t = (Math.PI * 2 / heartParticles) * i;
+                            const h_power = power * 0.15; 
+                            const velocity = {
+                                x: h_power * (16 * Math.pow(Math.sin(t), 3)),
+                                y: -h_power * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+                            };
+                            particles.push(new Particle(this.x, this.y, this.color, velocity));
+                        }
+                        break;
+
+                    case FIREWORK_TYPES.PEONY:
+                    default:
+                        const angleIncrement = (Math.PI * 2) / particleCount;
+                        for (let i = 0; i < particleCount; i++) {
+                            const velocity = {
+                                x: Math.cos(angleIncrement * i) * random(1, power),
+                                y: Math.sin(angleIncrement * i) * random(1, power)
+                            };
+                            particles.push(new Particle(this.x, this.y, this.color, velocity));
+                        }
+                        break;
+                }
+            }
+        }
+
+        // --- Main animation loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+
+            // Iterate backward for safe removal
+            for (let i = flashes.length - 1; i >= 0; i--) {
+                const flash = flashes[i];
+                if (flash.life <= 0) {
+                    flashes.splice(i, 1);
+                } else {
+                    flash.update();
+                    flash.draw();
+                }
+            }
+
+            // Iterate backward for safe removal
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const firework = fireworks[i];
+                if (firework.life <= 0) {
+                    fireworks.splice(i, 1);
+                } else {
+                    firework.update();
+                    firework.draw();
+                }
+            }
+
+            // Iterate backward for safe removal
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                if (particle.alpha <= 0 || particle.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    particle.update();
+                    particle.draw();
+                }
+            }
+        }
+
+        // Function to launch a firework
+        function launchFirework(targetX, targetY) {
+            const startX = canvas.width / 2;
+            const startY = canvas.height;
+            
+            // Generate vibrant random colors
+            const hue = random(0, 360);
+            const color = `hsl(${hue}, 100%, 65%)`; // More vibrant with higher saturation
+            const type = currentShowConfig.fireworkTypes[Math.floor(random(0, currentShowConfig.fireworkTypes.length))];
+            
+            fireworks.push(new Firework(targetX ?? startX, startY, color, targetY ?? random(canvas.height * 0.1, canvas.height * 0.4), type));
+        }
+        
+        // --- Event Listeners ---
+        
+        canvas.addEventListener('click', (e) => {
+            launchFirework(e.clientX, e.clientY);
+        });
+
+        // Show welcome popup on load, then hide it after 3 seconds
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                welcomePopup.classList.add('hidden');
+            }, 3000); // Hide after 3 seconds
+        });
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>
+
+
