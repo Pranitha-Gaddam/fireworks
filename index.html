@@ -11,6 +11,7 @@
             overflow: hidden;
             cursor: pointer;
             background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            font-family: 'Inter', sans-serif;
         }
 
         canvas {
@@ -27,7 +28,6 @@
             color: white;
             padding: 30px 50px;
             border-radius: 20px;
-            font-family: 'Inter', sans-serif;
             font-size: 24px;
             font-weight: 600;
             text-align: center;
@@ -44,6 +44,157 @@
             pointer-events: none;
         }
 
+        #controls {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 12px 16px; 
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden; 
+            max-height: 500px; 
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out; 
+            box-sizing: border-box; 
+        }
+
+        #controls.minimized {
+            max-height: 40px; 
+            padding-top: 10px; /* Adjust padding when minimized */
+            padding-bottom: 10px;
+        }
+
+        #controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px; 
+            margin-bottom: 4px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* --- NEW: Make header text bold --- */
+        #controls-header span {
+            font-weight: 600;
+        }
+
+        #controls.minimized #controls-header {
+             border-bottom: none; 
+             padding-bottom: 0;
+             margin-bottom: 0;
+        }
+
+        #controls-content {
+            opacity: 1;
+            transition: opacity 0.2s ease-out;
+        }
+
+        #controls.minimized #controls-content {
+            opacity: 0;
+            pointer-events: none; 
+        }
+
+        #controls label {
+            display: flex; 
+            align-items: center;
+            margin: 6px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        #controls input[type="checkbox"] {
+            margin-right: 8px; 
+            vertical-align: middle;
+            flex-shrink: 0; 
+        }
+
+        #controls hr {
+            border-color: rgba(255, 255, 255, 0.2);
+            margin: 8px 0;
+        }
+
+        #minimize-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease-out;
+            padding: 4px; /* Give it a click area */
+            margin-left: 10px; 
+            line-height: 1; /* Keep it aligned */
+        }
+        #minimize-toggle:hover {
+            opacity: 1;
+        }
+        
+        /* --- NEW: CSS rules to draw the chevron icon --- */
+        .chevron {
+            display: inline-block;
+            width: 6px; /* Chevron size */
+            height: 6px;
+            border-style: solid;
+            border-color: white;
+            border-width: 0 2px 2px 0; /* Creates the > shape */
+            transition: transform 0.3s ease-out, margin 0.3s ease-out;
+        }
+        
+        .chevron.up {
+            transform: rotate(-135deg); /* Points up */
+            margin-bottom: 2px; /* Vertical alignment */
+        }
+        
+        .chevron.down {
+            transform: rotate(45deg); /* Points down */
+            margin-bottom: 4px; /* Vertical alignment */
+        }
+        /* --- End of new chevron styles --- */
+
+        #speed-control {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        #speed-slider {
+            flex-grow: 1;
+            margin: 0 10px;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+        #speed-slider:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        #speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+        #speed-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+        #speed-value {
+            width: 30px;
+            text-align: right;
+        }
+
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,28 +207,94 @@
         Tap to launch a firework
     </div>
 
+    <div id="controls">
+        <div id="controls-header">
+            <span>Controls</span>
+            <button id="minimize-toggle" title="Minimize Controls">
+                <span class="chevron up"></span> 
+            </button>
+        </div>
+
+        <div id="controls-content">
+            <label>
+                <input type="checkbox" id="auto-toggle"> Auto-Launch
+            </label>
+            <hr>
+            <div id="speed-control">
+                <span>Speed:</span>
+                <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+                <span id="speed-value">1.0x</span>
+            </div>
+            <hr>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="PEONY" checked> Peony (Fast)
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="CHRYSANTHEMUM" checked> Chrysanthemum
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="WILLOW" checked> Willow
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="STROBE" checked> Strobe
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="RING" checked> Ring
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="CROSSETTE" checked> Crossette
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="HORSETAIL" checked> Horsetail
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="FISH" checked> Fish
+            </label>
+            <label>
+                <input type="checkbox" class="firework-type-toggle" value="HEART" checked> Heart
+            </label>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         const welcomePopup = document.getElementById('welcomePopup');
+        const autoToggle = document.getElementById('auto-toggle');
+        const typeToggles = document.querySelectorAll('.firework-type-toggle');
+        const controlsContainer = document.getElementById('controls');
+        const minimizeToggleBtn = document.getElementById('minimize-toggle');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValueDisplay = document.getElementById('speed-value');
 
         let fireworks = [];
         let particles = [];
         let flashes = []; 
-        let simulationSpeed = 1.2; // Default speed set to 1.2x
+        let autoLaunch = false;
+        let autoLaunchInterval;
+        let simulationSpeed = parseFloat(speedSlider.value); 
+
+        const MAX_PARTICLES = 1200; 
+        const MAX_FIREWORKS = 8;    
+        let frameCounter = 0;
 
         const FIREWORK_TYPES = {
-            PEONY: 'PEONY',     
-            WILLOW: 'WILLOW',   
-            GLITTER: 'GLITTER', 
-            HEART: 'HEART'      
+            PEONY: 'PEONY',             
+            CHRYSANTHEMUM: 'CHRYSANTHEMUM',
+            WILLOW: 'WILLOW',           
+            STROBE: 'STROBE',           
+            RING: 'RING',               
+            CROSSETTE: 'CROSSETTE',     
+            HORSETAIL: 'HORSETAIL',     
+            FISH: 'FISH',               
+            HEART: 'HEART'              
         };
 
         let currentShowConfig = {
-            launchInterval: 800,
+            launchInterval: 1200, 
             particleCount: 100,
             explosionPower: 5,
-            fireworkTypes: [FIREWORK_TYPES.PEONY] 
+            fireworkTypes: Object.values(FIREWORK_TYPES)
         };
 
         function resizeCanvas() {
@@ -89,130 +306,66 @@
 
         const random = (min, max) => Math.random() * (max - min) + min;
 
-        // --- Flash Class ---
+        // --- All classes (Flash, Particle, TrailingParticle, etc.) are unchanged ---
+        // [All class definitions from the previous response are unchanged]
         class Flash {
             constructor(x, y, color) {
                 this.x = x;
                 this.y = y;
                 this.color = color;
-                this.life = 15; // Reduced from 30 - shorter flash duration
+                this.life = 15; 
                 this.alpha = 1;
+                const hslMatch = this.color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                this.hslaColor = hslMatch ? 
+                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0.3)` : 
+                    this.color;
             }
-
             update() {
                 this.life--;
                 this.alpha = Math.max(0, this.life / 15);
             }
-
             draw() {
-                ctx.save();
-                // Reduced maximum alpha to make it less blinding
-                ctx.globalAlpha = this.alpha * 0.3; // Much softer flash
-                
-                // Convert HSL to HSLA for gradient
-                const hslMatch = this.color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-                const hslaColor = hslMatch ? 
-                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0.3)` : 
-                    this.color;
-                
+                ctx.globalAlpha = this.alpha * 0.3; 
                 const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 80 * (1 - this.alpha));
                 gradient.addColorStop(0, `rgba(255, 255, 255, 0.4)`);
-                gradient.addColorStop(0.4, hslaColor);
+                gradient.addColorStop(0.4, this.hslaColor); 
                 gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 100, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore();
+                ctx.globalAlpha = 1.0;
             }
         }
 
-
-        // --- Particle Class ---
         class Particle {
             constructor(x, y, color, velocity, type = 'normal') {
                 this.x = x;
                 this.y = y;
-                this.prevX = x; 
-                this.prevY = y; 
                 this.color = color;
                 this.velocity = velocity;
                 this.alpha = 1;
                 this.friction = 0.99;
                 this.gravity = 0.03;
-                this.life = random(120, 150);
+                this.life = random(100, 130); 
                 this.type = type;
-                // Sparkle effect properties
+
                 this.sparkleIntensity = random(0.8, 1.0);
                 this.sparklePhase = random(0, Math.PI * 2);
+
+                this.vibrantColor = this.getVibrantColor(color);
             }
 
-            draw() {
-                ctx.save();
-                
-                // Enhanced trail with brighter, more vibrant colors
-                ctx.beginPath();
-                ctx.moveTo(this.prevX, this.prevY);
-                ctx.lineTo(this.x, this.y);
-                ctx.lineWidth = 3;
-                
-                // Create a more vibrant gradient along the trail
-                const gradient = ctx.createLinearGradient(this.prevX, this.prevY, this.x, this.y);
-                const vibrantColor = this.getVibrantColor();
-                gradient.addColorStop(0, vibrantColor);
-                gradient.addColorStop(1, this.color);
-                
-                ctx.strokeStyle = gradient;
-                ctx.shadowBlur = 15 + this.sparkleIntensity * 10;
-                ctx.shadowColor = vibrantColor;
-                ctx.globalAlpha = this.alpha;
-                ctx.stroke();
-
-                // Enhanced core particle with crackling sparkle effect
-                const sparkle = Math.sin(this.sparklePhase + Date.now() * 0.02) * 0.3 + 0.7;
-                const particleSize = 2 + sparkle * this.sparkleIntensity;
-                
-                // Bright white center with color glow
-                const hslMatch = vibrantColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
-                const hslaColor1 = hslMatch ? 
-                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0.9)` : 
-                    vibrantColor;
-                const hslaColor2 = hslMatch ? 
-                    `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, 0)` : 
-                    vibrantColor;
-                
-                const radialGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, particleSize * 2);
-                radialGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-                radialGradient.addColorStop(0.3, hslaColor1);
-                radialGradient.addColorStop(1, hslaColor2);
-                
-                ctx.fillStyle = radialGradient;
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = vibrantColor;
-                ctx.globalAlpha = this.alpha * sparkle;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, particleSize, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
-            }
-            
-            getVibrantColor() {
-                // Extract hue from HSL color and make it more vibrant
-                const match = this.color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            getVibrantColor(color) {
+                const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
                 if (match) {
                     const hue = parseInt(match[1]);
-                    // Increase saturation to 100% and lightness to 60-70% for more vibrant colors
                     return `hsl(${hue}, 100%, ${65 + this.sparkleIntensity * 10}%)`;
                 }
-                return this.color;
+                return color;
             }
-
+            
             update() {
-                this.prevX = this.x;
-                this.prevY = this.y;
-
                 this.life--;
                 this.velocity.x *= this.friction;
                 this.velocity.y *= this.friction;
@@ -221,18 +374,117 @@
                 this.x += this.velocity.x * simulationSpeed;
                 this.y += this.velocity.y * simulationSpeed;
                 
-                // Animate sparkle phase for crackling effect
                 this.sparklePhase += 0.5;
 
-                if (this.type === FIREWORK_TYPES.GLITTER && this.life > 0) {
+                if (this.type === FIREWORK_TYPES.STROBE && this.life > 0) {
                     this.alpha = random(0.3, 1);
                 } else {
-                    this.alpha -= 1 / this.life;
+                    this.alpha -= 1 / Math.max(1, this.life);
+                }
+            }
+
+            draw() {
+                const quality = getQualityFactor();
+                const sparkle = Math.sin(this.sparklePhase + frameCounter * 0.12) * 0.3 + 0.7;
+                const particleSize = (2 + sparkle * this.sparkleIntensity) * quality;
+                
+                ctx.fillStyle = 'white'; 
+                
+                if (quality > 0.8) { 
+                    ctx.shadowBlur = 15 * quality; 
+                    ctx.shadowColor = this.vibrantColor;
+                } else {
+                    ctx.shadowBlur = 0; 
+                }
+                
+                ctx.globalAlpha = this.alpha * sparkle;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, particleSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 1.0; 
+            }
+        }
+
+        class TrailingParticle extends Particle {
+            constructor(x, y, color, velocity, type = 'normal') {
+                super(x, y, color, velocity, type);
+                this.prevX = x;
+                this.prevY = y;
+            }
+
+            update() {
+                this.prevX = this.x;
+                this.prevY = this.y;
+                super.update(); 
+            }
+
+            draw() {
+                const quality = getQualityFactor();
+                
+                ctx.strokeStyle = this.vibrantColor;
+                ctx.lineWidth = 3 * quality;
+                
+                if (quality > 0.8) { 
+                    ctx.shadowBlur = (10 + this.sparkleIntensity * 8) * quality;
+                    ctx.shadowColor = this.vibrantColor;
+                } else {
+                    ctx.shadowBlur = 0; 
+                }
+                
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.moveTo(this.prevX, this.prevY);
+                ctx.lineTo(this.x, this.y);
+                ctx.stroke();
+
+                super.draw(); 
+            }
+        }
+
+        class CrossetteParticle extends TrailingParticle {
+            constructor(x, y, color, velocity) {
+                super(x, y, color, velocity);
+                this.burstLife = random(60, 80); 
+                this.hasBurst = false;
+            }
+
+            update() {
+                super.update();
+                
+                if (this.life <= this.burstLife && !this.hasBurst) {
+                    this.hasBurst = true;
+                    this.alpha = 0; 
+                    
+                    for (let i = 0; i < 4; i++) {
+                        const angle = (Math.PI / 2) * i;
+                        const burstVel = {
+                            x: Math.cos(angle) * 2,
+                            y: Math.sin(angle) * 2
+                        };
+                        const p = new TrailingParticle(this.x, this.y, this.color, burstVel);
+                        p.life = 40; 
+                        p.gravity = 0.05;
+                        particles.push(p);
+                    }
                 }
             }
         }
 
-        // --- Firework (Rocket) Class ---
+        class FishParticle extends Particle {
+            constructor(x, y, color, velocity) {
+                super(x, y, color, velocity);
+                this.life = random(80, 120); 
+                this.swiggle = random(0, Math.PI * 2);
+            }
+            
+            update() {
+                super.update();
+                this.velocity.x += Math.sin(this.life * 0.2 + this.swiggle) * 0.3;
+                this.gravity = 0.01; 
+            }
+        }
+
         class Firework extends Particle {
             constructor(x, y, color, targetY, type) {
                 super(x, y, color, { x: 0, y: random(-4, -6) });
@@ -245,17 +497,13 @@
             update() {
                 this.prevX = this.x;
                 this.prevY = this.y;
-
                 this.life--;
                 this.velocity.x *= this.friction;
                 this.velocity.y *= this.friction;
-
-                // ✨ MODIFIED: Apply simulation speed
                 this.velocity.y += this.gravity * simulationSpeed;
                 this.x += this.velocity.x * simulationSpeed;
                 this.y += this.velocity.y * simulationSpeed;
-
-                this.alpha -= 1 / this.life;
+                this.alpha -= 1 / Math.max(1, this.life);
 
                 if (this.velocity.y >= 0 || this.y <= this.targetY) {
                     this.explode();
@@ -264,82 +512,134 @@
             }
 
             draw() {
-                ctx.save();
                 ctx.globalAlpha = this.alpha;
-                
+                ctx.strokeStyle = this.vibrantColor;
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.vibrantColor;
                 ctx.beginPath();
                 ctx.moveTo(this.prevX, this.prevY);
                 ctx.lineTo(this.x, this.y);
-                ctx.lineWidth = 2.5;
-                ctx.strokeStyle = this.color;
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = this.color;
                 ctx.stroke();
-
+                
+                ctx.fillStyle = 'white';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.vibrantColor;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
                 ctx.fill();
 
-                ctx.restore();
+                ctx.globalAlpha = 1.0;
             }
 
             explode() {
                 flashes.push(new Flash(this.x, this.y, this.color));
 
-                const particleCount = currentShowConfig.particleCount;
+                const quality = getQualityFactor(); 
+                const particleCount = currentShowConfig.particleCount * quality; 
                 const power = currentShowConfig.explosionPower;
+                const createEvery = Math.max(1, Math.ceil((particles.length + particleCount) / MAX_PARTICLES));
 
                 switch (this.explosionType) {
+                    case FIREWORK_TYPES.CHRYSANTHEMUM:
+                        for (let i = 0; i < particleCount; i++) {
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(1, power);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
+                            particles.push(new TrailingParticle(this.x, this.y, this.color, velocity));
+                        }
+                        break;
+                    
                     case FIREWORK_TYPES.WILLOW:
                         for (let i = 0; i < particleCount; i++) {
+                            if (i % createEvery !== 0) continue;
                             const angle = random(0, Math.PI * 2);
-                            const velocity = {
-                                x: Math.cos(angle) * random(0.5, power * 0.8),
-                                y: Math.sin(angle) * random(0.5, power * 0.8)
-                            };
-                            const p = new Particle(this.x, this.y, this.color, velocity);
-                            p.gravity = 0.01; 
-                            p.friction = 0.96; 
-                            p.life = random(200, 300); 
-                            particles.push(p);
+                            const p = random(0.5, power * 0.8);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
+                            const p_ = new TrailingParticle(this.x, this.y, 'hsl(45, 100%, 65%)', velocity); 
+                            p_.gravity = 0.01; 
+                            p_.friction = 0.96; 
+                            p_.life = random(180, 250); 
+                            particles.push(p_);
                         }
                         break;
                     
-                    case FIREWORK_TYPES.GLITTER:
+                    case FIREWORK_TYPES.STROBE:
+                        for (let i = 0; i < particleCount * 0.8; i++) { 
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(1, power);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
+                            particles.push(new Particle(this.x, this.y, this.color, velocity, FIREWORK_TYPES.STROBE));
+                        }
+                        break;
+
+                    case FIREWORK_TYPES.RING:
+                        const ringPower = power * 0.8;
                         for (let i = 0; i < particleCount; i++) {
-                            const angle = random(0, Math.PI * 2);
-                            const velocity = {
-                                x: Math.cos(angle) * random(1, power),
-                                y: Math.sin(angle) * random(1, power)
-                            };
-                            particles.push(new Particle(this.x, this.y, this.color, velocity, FIREWORK_TYPES.GLITTER));
+                            if (i % createEvery !== 0) continue;
+                            const angle = (Math.PI * 2 / particleCount) * i;
+                            const velocity = { x: Math.cos(angle) * ringPower, y: Math.sin(angle) * ringPower };
+                            particles.push(new TrailingParticle(this.x, this.y, this.color, velocity));
                         }
                         break;
                     
+                    case FIREWORK_TYPES.CROSSETTE:
+                        for (let i = 0; i < particleCount * 0.2; i++) { 
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(0.5, power * 0.8);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
+                            particles.push(new CrossetteParticle(this.x, this.y, this.color, velocity));
+                        }
+                        break;
+                    
+                    case FIREWORK_TYPES.HORSETAIL:
+                        for (let i = 0; i < particleCount; i++) {
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(0.1, power * 0.3);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p + 1.5 };
+                            const p_ = new TrailingParticle(this.x, this.y, 'hsl(45, 100%, 65%)', velocity);
+                            p_.gravity = 0.01; 
+                            p_.friction = 0.98; 
+                            p_.life = random(160, 220); 
+                            particles.push(p_);
+                        }
+                        break;
+
+                    case FIREWORK_TYPES.FISH:
+                        for (let i = 0; i < particleCount * 0.6; i++) { 
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(1, power * 0.8);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
+                            particles.push(new FishParticle(this.x, this.y, this.color, velocity));
+                        }
+                        break;
+
                     case FIREWORK_TYPES.HEART:
-                        const heartParticles = particleCount * 1.5; 
+                        const heartParticles = particleCount * 0.7; 
                         for (let i = 0; i < heartParticles; i++) {
+                            if (i % createEvery !== 0) continue;
                             const t = (Math.PI * 2 / heartParticles) * i;
-                            const h_power = power * 0.15; 
+                            const h_power = power * 0.1; 
                             const velocity = {
                                 x: h_power * (16 * Math.pow(Math.sin(t), 3)),
                                 y: -h_power * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
                             };
-                            particles.push(new Particle(this.x, this.y, this.color, velocity));
+                            particles.push(new TrailingParticle(this.x, this.y, this.color, velocity));
                         }
                         break;
 
                     case FIREWORK_TYPES.PEONY:
                     default:
-                        const angleIncrement = (Math.PI * 2) / particleCount;
                         for (let i = 0; i < particleCount; i++) {
-                            const velocity = {
-                                x: Math.cos(angleIncrement * i) * random(1, power),
-                                y: Math.sin(angleIncrement * i) * random(1, power)
-                            };
+                            if (i % createEvery !== 0) continue;
+                            const angle = random(0, Math.PI * 2);
+                            const p = random(1, power);
+                            const velocity = { x: Math.cos(angle) * p, y: Math.sin(angle) * p };
                             particles.push(new Particle(this.x, this.y, this.color, velocity));
                         }
                         break;
@@ -347,17 +647,15 @@
             }
         }
 
-        // --- Main animation loop ---
+        // --- Main animation loop (Unchanged) ---
         function animate() {
             requestAnimationFrame(animate);
-
+            frameCounter++;
+            ctx.shadowBlur = 0; 
+            ctx.shadowColor = 'transparent';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
-
-            // Iterate backward for safe removal
             for (let i = flashes.length - 1; i >= 0; i--) {
                 const flash = flashes[i];
                 if (flash.life <= 0) {
@@ -367,8 +665,6 @@
                     flash.draw();
                 }
             }
-
-            // Iterate backward for safe removal
             for (let i = fireworks.length - 1; i >= 0; i--) {
                 const firework = fireworks[i];
                 if (firework.life <= 0) {
@@ -378,8 +674,6 @@
                     firework.draw();
                 }
             }
-
-            // Iterate backward for safe removal
             for (let i = particles.length - 1; i >= 0; i--) {
                 const particle = particles[i];
                 if (particle.alpha <= 0 || particle.life <= 0) {
@@ -389,38 +683,99 @@
                     particle.draw();
                 }
             }
+            if (particles.length > MAX_PARTICLES) {
+                particles.length = MAX_PARTICLES;
+            }
         }
 
-        // Function to launch a firework
+        // --- Function to launch a firework (Unchanged) ---
         function launchFirework(targetX, targetY) {
             const startX = canvas.width / 2;
             const startY = canvas.height;
-            
-            // Generate vibrant random colors
             const hue = random(0, 360);
-            const color = `hsl(${hue}, 100%, 65%)`; // More vibrant with higher saturation
+            const color = `hsl(${hue}, 100%, 65%)`; 
+            
             const type = currentShowConfig.fireworkTypes[Math.floor(random(0, currentShowConfig.fireworkTypes.length))];
             
             fireworks.push(new Firework(targetX ?? startX, startY, color, targetY ?? random(canvas.height * 0.1, canvas.height * 0.4), type));
+
+            if (fireworks.length > MAX_FIREWORKS) {
+                fireworks.splice(0, fireworks.length - MAX_FIREWORKS);
+            }
         }
         
         // --- Event Listeners ---
-        
+        // Click to launch
         canvas.addEventListener('click', (e) => {
             launchFirework(e.clientX, e.clientY);
         });
 
-        // Show welcome popup on load, then hide it after 3 seconds
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                welcomePopup.classList.add('hidden');
-            }, 3000); // Hide after 3 seconds
+        // Auto-toggle
+        autoToggle.addEventListener('change', (e) => {
+            autoLaunch = e.target.checked;
+            clearInterval(autoLaunchInterval);
+            if (autoLaunch) {
+                autoLaunchInterval = setInterval(() => {
+                    launchFirework(random(0, canvas.width), random(canvas.height * 0.1, canvas.height * 0.5));
+                }, currentShowConfig.launchInterval); 
+            }
         });
 
-        // Start the animation
+        // Update enabled types from checklist
+        function updateEnabledFireworkTypes() {
+            currentShowConfig.fireworkTypes = [];
+            typeToggles.forEach(toggle => {
+                if (toggle.checked) {
+                    currentShowConfig.fireworkTypes.push(toggle.value);
+                }
+            });
+            
+            if (currentShowConfig.fireworkTypes.length === 0) {
+                currentShowConfig.fireworkTypes.push(FIREWORK_TYPES.PEONY);
+            }
+        }
+        typeToggles.forEach(toggle => {
+            toggle.addEventListener('change', updateEnabledFireworkTypes);
+        });
+
+        // --- UPDATED: Minimize button listener ---
+        minimizeToggleBtn.addEventListener('click', () => {
+            controlsContainer.classList.toggle('minimized');
+            const chevron = minimizeToggleBtn.querySelector('.chevron');
+            chevron.classList.toggle('up');
+            chevron.classList.toggle('down');
+            
+            if (controlsContainer.classList.contains('minimized')) {
+                minimizeToggleBtn.title = 'Show Controls';
+            } else {
+                minimizeToggleBtn.title = 'Minimize Controls';
+            }
+        });
+
+        // Speed slider listener
+        speedSlider.addEventListener('input', (e) => {
+            simulationSpeed = parseFloat(e.target.value);
+            speedValueDisplay.textContent = `${simulationSpeed.toFixed(1)}x`; 
+        });
+
+        // On load
+        window.addEventListener('load', () => {
+            updateEnabledFireworkTypes(); 
+            speedValueDisplay.textContent = `${simulationSpeed.toFixed(1)}x`;
+            setTimeout(() => {
+                welcomePopup.classList.add('hidden');
+            }, 3000); 
+        });
+
         animate();
+
+        // --- Quality Factor function (Unchanged) ---
+        function getQualityFactor() {
+            if (particles.length < 500) return 1.0; 
+            if (particles.length > MAX_PARTICLES) return 0.6; 
+            const t = (particles.length - 500) / (MAX_PARTICLES - 500);
+            return 1.0 - t * 0.4; 
+        }
     </script>
 </body>
 </html>
-
-
