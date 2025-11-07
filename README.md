@@ -1,5 +1,6 @@
 # 🎆 Interactive 3D Fireworks Display
 
+Built with Three.js + Next.js
 ## ✨ Features & Controls
 * **Fireworks Types:** Control specific visual styles, such as opting out of certain fireworks types.
 * **Auto Launch:** Toggle automatic, continuous launching of fireworks.
