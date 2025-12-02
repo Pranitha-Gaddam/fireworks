@@ -1,6 +1,6 @@
 ## 🎆 Interactive 3D Fireworks Display
 
-Built with Three.js + Next.js
+Built with Three.js + Next.js (works great on Safari but needs to be optimized for Chromium-based browsers (Chrome, Opera, etc.)
 
 [View live](https://fireworks-gules.vercel.app)
 
